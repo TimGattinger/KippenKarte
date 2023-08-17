@@ -1,53 +1,48 @@
+import os
 from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
-import folium
 
 app = Flask(__name__)
+
+# Configure the SQLite database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///markers.db'
 db = SQLAlchemy(app)
-
-# Create a base map centered around Kiel
-kiel_coords = [54.323293, 10.122765]
 
 class Marker(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
-    label = db.Column(db.String(255), nullable=False)
+    label = db.Column(db.String(100), nullable=False)
 
-def create_sample_data():
-    db.create_all()
-
-    # Add sample markers
-    sample_markers = [
-        Marker(lat=54.323293, lon=10.122765, label="Kiel"),
-        Marker(lat=54.314, lon=10.127, label="Marker 1"),
-        Marker(lat=54.320, lon=10.130, label="Marker 2"),
-    ]
-
-    for marker in sample_markers:
-        db.session.add(marker)
-
-    db.session.commit()
+db.create_all()
 
 @app.route('/')
-def index():
+def map():
     markers = Marker.query.all()
     return render_template('map.html', markers=markers)
 
 @app.route('/add_marker', methods=['POST'])
 def add_marker():
-    lat = float(request.form['lat'])
-    lon = float(request.form['lon'])
+    lat = request.form['lat']
+    lon = request.form['lon']
     label = request.form['label']
-    marker = Marker(lat=lat, lon=lon, label=label)
-    db.session.add(marker)
+
+    new_marker = Marker(lat=lat, lon=lon, label=label)
+    db.session.add(new_marker)
+    db.session.commit()
+
+    return redirect('/')
+
+@app.route('/delete_marker/<int:marker_id>', methods=['POST'])
+def delete_marker(marker_id):
+    marker = Marker.query.get_or_404(marker_id)
+    db.session.delete(marker)
     db.session.commit()
     return redirect('/')
 
 if __name__ == '__main__':
-    with app.app_context():
-        create_sample_data()
-    app.run(debug=True)
+    # Use the PORT environment variable provided by Heroku
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 
 
