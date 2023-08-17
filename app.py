@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 
 # Configure the SQLite database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///markers.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///markers.db'
 db = SQLAlchemy(app)
 
 class Marker(db.Model):
@@ -43,6 +43,7 @@ def delete_marker(marker_id):
 if __name__ == '__main__':
     # Use the PORT environment variable provided by Heroku
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
+
 
 
